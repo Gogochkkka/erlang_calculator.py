@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Erlang B Калькулятор</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <style>
+        /* Чистый, строгий светлый стиль с полной читаемостью */
+        body {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 400;
+            background-color: #ffffff;
+            color: #111111;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            padding: 1.5rem;
+        }
+        main {
+            max-width: 850px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 2.5rem;
+            border: none;
+            box-shadow: none;
+        }
+        h1, h2, h3, h4, h5, h6 {
+            font-family: 'Roboto', sans-serif;
+            font-weight: 500;
+            color: #1e1e1e;
+        }
+        h1 {
+            font-size: 2rem;
+            margin-bottom: 0.25rem;
+            padding-bottom: 0.5rem;
+            border-bottom: 1px solid #ccc;
+        }
+        h2 {
+            font-size: 1.6rem;
+            margin-top: 2.2rem;
+            margin-bottom: 1rem;
+        }
+        h3 {
+            font-size: 1.3rem;
+            margin-top: 1.8rem;
+            margin-bottom: 0.8rem;
+            font-weight: 500;
+        }
+        p, li, label, legend, button, input, .description, .formula {
+            font-family: 'Roboto', sans-serif;
+            color: #111111;
+        }
+        p {
+            line-height: 1.6;
+            margin-bottom: 1rem;
+        }
+        fieldset {
+            border: 1px solid #d4d4d4;
+            padding: 1.5rem;
+            margin-bottom: 2rem;
+            background: #ffffff;
+        }
+        /* Явно переопределяем цвет legend, чтобы он был чёрным */
+        legend {
+            font-weight: 500;
+            padding: 0 0.75rem;
+            color: #111111 !important;
+        }
+        /* Радиокнопки в столбик и чёткий текст */
+        fieldset label {
+            display: block;
+            margin-bottom: 0.5rem;
+            color: #111111 !important;
+        }
+        input[type="radio"] {
+            accent-color: #2c3e50;
+        }
+        input[type="text"] {
+            background-color: #ffffff;
+            border: 1px solid #b0b0b0;
+            border-radius: 4px;
+            padding: 0.6rem 0.8rem;
+            font-size: 1rem;
+            color: #111;
+        }
+        input[type="text"]:focus {
+            border-color: #3a6ea5;
+            outline: none;
+            box-shadow: 0 0 0 2px rgba(58, 110, 165, 0.1);
+        }
+        button {
+            background-color: #2c3e50;
+            border: none;
+            color: white;
+            padding: 0.7rem 1.8rem;
+            font-size: 1rem;
+            font-weight: 500;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background 0.15s;
+            margin-top: 0.5rem;
+        }
+        button:hover {
+            background-color: #1a2a3a;
+        }
+        .result-box {
+            margin-top: 2rem;
+            padding: 1.5rem;
+            border-radius: 4px;
+            background-color: #f5f7fa;
+            border-left: 4px solid #2c3e50;
+        }
+        .error {
+            color: #c0392b !important;
+            font-weight: 500;
+        }
+        .success {
+            color: #1e5631 !important;
+            font-weight: 500;
+        }
+        .hidden {
+            display: none;
+        }
+        .description {
+            margin-top: 3rem;
+            padding-top: 1.5rem;
+            border-top: 1px solid #ccc;
+        }
+        /* Формула — светлый фон, тёмный текст */
+        .formula {
+            font-size: 1.2rem;
+            text-align: center;
+            padding: 1.2rem;
+            background-color: #f0f4f8 !important;
+            border-radius: 4px;
+            margin: 1.5rem 0;
+            font-family: 'Courier New', monospace;
+            border: 1px solid #d4dce4;
+            color: #1e2b3a !important;
+        }
+        .formula code, .formula pre {
+            background: transparent;
+            color: #1e2b3a;
+        }
+        .input-group {
+            margin-bottom: 1.8rem;
+        }
+        .input-group label {
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 500;
+            color: #111111;
+        }
+        .ref-list {
+            list-style-type: none;
+            padding-left: 0;
+        }
+        .ref-list li {
+            margin-bottom: 0.4rem;
+            color: #111111;
+        }
+        .container {
+            padding: 0;
+        }
+        hgroup p {
+            margin-top: 0.25rem;
+            color: #4a5568;
+            font-size: 1.1rem;
+        }
+        code, pre {
+            background-color: #f0f4f8;
+            color: #1e2b3a;
+        }
+    </style>
+</head>
+<body>
+    <main class="container">
+        <hgroup>
+            <h1>Калькулятор модели Эрланга</h1>
+            <p>Расчёт вероятности блокировки, числа каналов и нагрузки</p>
+        </hgroup>
+
+        <fieldset>
+            <legend>Что вы хотите рассчитать?</legend>
+            <label>
+                <input type="radio" name="mode" value="calc_e" checked>
+                Найти вероятность блокировки (E) по v и a
+            </label>
+            <label>
+                <input type="radio" name="mode" value="find_v">
+                Найти число каналов (v) по a и допустимой E
+            </label>
+            <label>
+                <input type="radio" name="mode" value="find_a">
+                Найти нагрузку (a) по v и допустимой E
+            </label>
+        </fieldset>
+
+        <div id="inputs-calc_e" class="input-group">
+            <label>
+                Число каналов v
+                <input type="text" id="v-input" value="10" placeholder="10">
+            </label>
+            <label>
+                Нагрузка a (Эрл)
+                <input type="text" id="a-input" value="7.5" placeholder="7.5">
+            </label>
+        </div>
+
+        <div id="inputs-find_v" class="input-group hidden">
+            <label>
+                Нагрузка a (Эрл)
+                <input type="text" id="a-v-input" value="25.0" placeholder="25.0">
+            </label>
+            <label>
+                Допустимая вероятность блокировки E
+                <input type="text" id="e-v-input" value="0.01" placeholder="0.01">
+            </label>
+        </div>
+
+        <div id="inputs-find_a" class="input-group hidden">
+            <label>
+                Число каналов v
+                <input type="text" id="v-a-input" value="20" placeholder="20">
+            </label>
+            <label>
+                Допустимая вероятность блокировки E
+                <input type="text" id="e-a-input" value="0.02" placeholder="0.02">
+            </label>
+        </div>
+
+        <button id="calculate-btn">Рассчитать</button>
+
+        <div id="result-container" class="result-box hidden">
+            <h3>Результат</h3>
+            <div id="result-content"></div>
+        </div>
+
+        <!-- Теоретический блок -->
+        <section class="description">
+            <h2>Моносервисная модель Эрланга с потерями (Erlang B)</h2>
+
+            <h3>Назначение и область применения</h3>
+            <p>
+                Модель Эрланга применяется для оценки объёма ресурса при обслуживании заявок
+                на передачу трафика сервисов реального времени (речь, видеоконтент).
+                Используемая шкала времени — моменты поступления заявок. Модель носит
+                локальный характер и обычно относится к фрагменту сети: соединительная линия,
+                приёмопередающее оборудование отдельной соты, операторы call-центра.
+            </p>
+            <p>
+                Входной поток предполагается пуассоновским. Это допущение основано на том,
+                что число пользователей услуг связи достаточно велико, заявки поступают
+                независимо друг от друга с малой интенсивностью, а суммарная интенсивность
+                стремится к константе. Интервалы времени между последовательными поступлениями
+                заявок в этом случае имеют экспоненциальное распределение.
+            </p>
+
+            <h3>Функциональные компоненты модели</h3>
+            <ul>
+                <li>Ресурс передачи информации — выражается целым числом виртуальных каналов v.
+                За единицу ресурса может приниматься битовая скорость виртуального канала,
+                тайм-слот, оператор.</li>
+                <li>Допуск заявок — для обслуживания используется любая свободная единица ресурса,
+                все они идентичны с точки зрения качества сервиса. Если весь ресурс занят, заявка
+                получает отказ и не возобновляется.</li>
+                <li>Алгоритм управления передачей — выделенный ресурс не меняется за время
+                предоставления сервиса (свойство сервисов реального времени).</li>
+            </ul>
+
+            <h3>Математическое описание</h3>
+            <p>
+                Время обслуживания заявки предполагается экспоненциально распределённым
+                с параметром μ (среднее время обслуживания h = 1/μ). Функционирование модели
+                описывается марковским процессом. Состояние модели задаётся числом занятых
+                каналов i (i = 0, 1, …, v). Динамика изменения состояний определяется двумя
+                типами событий: поступление новой заявки (интенсивность λ) и завершение
+                обслуживания одной из i заявок (интенсивность i·μ).
+            </p>
+            <p>
+                Из системы уравнений равновесия выводятся соотношения детального баланса,
+                которые позволяют получить стационарные вероятности состояний:
+            </p>
+            <div class="formula">
+                P(i) = P(0) · (a<sup>i</sup> / i!), &nbsp;&nbsp; i = 0, 1, …, v,<br>
+                где a = λ / μ — интенсивность предложенной нагрузки.
+            </div>
+
+            <h3>Потенциальная загрузка ресурса (эрланги)</h3>
+            <p>
+                Интенсивность предложенного трафика a измеряется в эрлангах (Эрл) и численно
+                равна среднему числу заявок, поступающих за среднее время обслуживания одной
+                заявки: a = λ · h. По определению, a представляет собой среднее число
+                потенциальных соединений в системе с неограниченным ресурсом (v = ∞).
+                Эта характеристика не зависит от качества работы системы и служит мерой
+                поступающей нагрузки.
+            </p>
+
+            <h3>Формула Эрланга B</h3>
+            <p>
+                Доля потерянных заявок (вероятность блокировки) совпадает с долей времени
+                занятости всех v каналов (свойство PASTA) и обозначается E(v, a):
+            </p>
+            <div class="formula">
+                E(v, a) = ( a<sup>v</sup> / v! ) / ( Σ<sub>i=0</sub><sup>v</sup> a<sup>i</sup> / i! )
+            </div>
+            <p>
+                Для практических расчётов используется рекурсивный алгоритм:
+                <br>
+                <code>E(0, a) = 1; &nbsp; E(r, a) = (a · E(r−1, a)) / (r + a · E(r−1, a)), &nbsp; r = 1..v</code>.
+            </p>
+
+            <h3>Основные рассчитываемые характеристики</h3>
+            <ul>
+                <li>Вероятность блокировки E(v, a) — доля потерянных заявок.</li>
+                <li>Среднее число занятых каналов m = a · (1 − E(v, a)).</li>
+                <li>Коэффициент использования канала δ = m / v.</li>
+            </ul>
+
+            <h3>Свойства формулы Эрланга</h3>
+            <ul>
+                <li>Устойчивость: формула Эрланга сохраняет свой вид для произвольного
+                распределения времени обслуживания заявки, если его среднее зафиксировано.</li>
+                <li>Монотонность: вероятность блокировки E(v, a) возрастает с ростом a
+                и убывает с ростом v.</li>
+            </ul>
+
+            <h3>Прямые и обратные задачи</h3>
+            <p>Калькулятор решает три типа задач:</p>
+            <ul>
+                <li>Прямая задача: по v и a определить E и m.</li>
+                <li>Обратная задача 1: по a и допустимой E найти минимальное v.</li>
+                <li>Обратная задача 2: по v и допустимой E найти максимальную нагрузку a.</li>
+            </ul>
+
+            <h3>Литература</h3>
+            <ul class="ref-list">
+                <li>1. Лекция: «Моносервисная модель Эрланга и ее обобщения».</li>
+                <li>2. Н.А. Кузнецов, С.Н. Степанов, М.С. Степанов. Моделирование сетей и систем связи. — М.: МФТИ, 2019.</li>
+                <li>3. С.Н. Степанов. Теория телетрафика: концепции, модели, приложения. — М.: Горячая линия – Телеком, 2015.</li>
+            </ul>
+        </section>
+    </main>
+
+    <script>
+        function parseNumber(str, isInteger = false) {
+            str = str.trim();
+            if (str === '') throw new Error('Поле не должно быть пустым');
+            let normalized = str.replace(',', '.');
+            let num = Number(normalized);
+            if (isNaN(num)) throw new Error('Некорректное число');
+            if (isInteger && !Number.isInteger(num)) throw new Error('Число каналов должно быть целым');
+            if (num < 0) throw new Error('Значение не может быть отрицательным');
+            return num;
+        }
+
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        const inputsCalcE = document.getElementById('inputs-calc_e');
+        const inputsFindV = document.getElementById('inputs-find_v');
+        const inputsFindA = document.getElementById('inputs-find_a');
+
+        function updateInputsVisibility() {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            inputsCalcE.classList.add('hidden');
+            inputsFindV.classList.add('hidden');
+            inputsFindA.classList.add('hidden');
+            if (mode === 'calc_e') inputsCalcE.classList.remove('hidden');
+            else if (mode === 'find_v') inputsFindV.classList.remove('hidden');
+            else if (mode === 'find_a') inputsFindA.classList.remove('hidden');
+        }
+
+        modeRadios.forEach(radio => radio.addEventListener('change', updateInputsVisibility));
+        updateInputsVisibility();
+
+        document.getElementById('calculate-btn').addEventListener('click', async () => {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            const resultContainer = document.getElementById('result-container');
+            const resultContent = document.getElementById('result-content');
+
+            let payload = { mode };
+
+            try {
+                if (mode === 'calc_e') {
+                    const vInput = document.getElementById('v-input');
+                    const aInput = document.getElementById('a-input');
+                    payload.v = parseNumber(vInput.value, true);
+                    vInput.value = payload.v;
+                    payload.a = parseNumber(aInput.value, false);
+                    aInput.value = payload.a;
+                } else if (mode === 'find_v') {
+                    const aInput = document.getElementById('a-v-input');
+                    const eInput = document.getElementById('e-v-input');
+                    payload.a = parseNumber(aInput.value, false);
+                    aInput.value = payload.a;
+                    payload.target_e = parseNumber(eInput.value, false);
+                    eInput.value = payload.target_e;
+                    if (payload.target_e <= 0 || payload.target_e >= 1) {
+                        throw new Error('Вероятность блокировки должна быть строго между 0 и 1');
+                    }
+                } else if (mode === 'find_a') {
+                    const vInput = document.getElementById('v-a-input');
+                    const eInput = document.getElementById('e-a-input');
+                    payload.v = parseNumber(vInput.value, true);
+                    vInput.value = payload.v;
+                    payload.target_e = parseNumber(eInput.value, false);
+                    eInput.value = payload.target_e;
+                    if (payload.target_e <= 0 || payload.target_e >= 1) {
+                        throw new Error('Вероятность блокировки должна быть строго между 0 и 1');
+                    }
+                }
+
+                resultContainer.classList.remove('hidden');
+                resultContent.innerHTML = '<span aria-busy="true">Вычисляем...</span>';
+
+                const response = await fetch('/calculate', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    resultContent.innerHTML = `<p class="success" style="font-size: 1.2rem;">${data.result}</p>`;
+                } else {
+                    resultContent.innerHTML = `<p class="error">Ошибка: ${data.error}</p>`;
+                }
+            } catch (error) {
+                resultContainer.classList.remove('hidden');
+                resultContent.innerHTML = `<p class="error">Ошибка ввода: ${error.message}</p>`;
+            }
+        });
+    </script>
+</body>
+</html>
