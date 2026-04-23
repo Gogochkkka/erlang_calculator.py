@@ -3,11 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Erlang B Калькулятор</title>
+    <title>Erlang B Калькулятор (v, a, E, m)</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@picocss/pico@2/css/pico.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
     <style>
-        /* Чистый, строгий светлый стиль с полной читаемостью */
         body {
             font-family: 'Roboto', sans-serif;
             font-weight: 400;
@@ -48,7 +47,7 @@
             margin-bottom: 0.8rem;
             font-weight: 500;
         }
-        p, li, label, legend, button, input, .description, .formula {
+        p, li, label, legend, button, input {
             font-family: 'Roboto', sans-serif;
             color: #111111;
         }
@@ -62,13 +61,11 @@
             margin-bottom: 2rem;
             background: #ffffff;
         }
-        /* Явно переопределяем цвет legend, чтобы он был чёрным */
         legend {
             font-weight: 500;
             padding: 0 0.75rem;
             color: #111111 !important;
         }
-        /* Радиокнопки в столбик и чёткий текст */
         fieldset label {
             display: block;
             margin-bottom: 0.5rem;
@@ -128,7 +125,6 @@
             padding-top: 1.5rem;
             border-top: 1px solid #ccc;
         }
-        /* Формула — светлый фон, тёмный текст */
         .formula {
             font-size: 1.2rem;
             text-align: center;
@@ -139,10 +135,6 @@
             font-family: 'Courier New', monospace;
             border: 1px solid #d4dce4;
             color: #1e2b3a !important;
-        }
-        .formula code, .formula pre {
-            background: transparent;
-            color: #1e2b3a;
         }
         .input-group {
             margin-bottom: 1.8rem;
@@ -179,57 +171,20 @@
     <main class="container">
         <hgroup>
             <h1>Калькулятор модели Эрланга</h1>
-            <p>Расчёт вероятности блокировки, числа каналов и нагрузки</p>
+            <p>Расчёт v, a, E, m (число каналов, нагрузка, вероятность блокировки, среднее число занятых каналов)</p>
         </hgroup>
 
         <fieldset>
             <legend>Что вы хотите рассчитать?</legend>
-            <label>
-                <input type="radio" name="mode" value="calc_e" checked>
-                Найти вероятность блокировки (E) по v и a
-            </label>
-            <label>
-                <input type="radio" name="mode" value="find_v">
-                Найти число каналов (v) по a и допустимой E
-            </label>
-            <label>
-                <input type="radio" name="mode" value="find_a">
-                Найти нагрузку (a) по v и допустимой E
-            </label>
+            <label><input type="radio" name="mode" value="av_to_Em" checked> Найти E и m по заданным v и a</label>
+            <label><input type="radio" name="mode" value="aE_to_vm"> Найти v и m по заданным a и допустимой E</label>
+            <label><input type="radio" name="mode" value="am_to_vE"> Найти v и E по заданным a и требуемому m</label>
+            <label><input type="radio" name="mode" value="vm_to_aE"> Найти a и E по заданным v и требуемому m</label>
+            <label><input type="radio" name="mode" value="vE_to_am"> Найти a и m по заданным v и допустимой E</label>
+            <label><input type="radio" name="mode" value="Em_to_av"> Найти a и v по заданным допустимой E и требуемому m</label>
         </fieldset>
 
-        <div id="inputs-calc_e" class="input-group">
-            <label>
-                Число каналов v
-                <input type="text" id="v-input" value="10" placeholder="10">
-            </label>
-            <label>
-                Нагрузка a (Эрл)
-                <input type="text" id="a-input" value="7.5" placeholder="7.5">
-            </label>
-        </div>
-
-        <div id="inputs-find_v" class="input-group hidden">
-            <label>
-                Нагрузка a (Эрл)
-                <input type="text" id="a-v-input" value="25.0" placeholder="25.0">
-            </label>
-            <label>
-                Допустимая вероятность блокировки E
-                <input type="text" id="e-v-input" value="0.01" placeholder="0.01">
-            </label>
-        </div>
-
-        <div id="inputs-find_a" class="input-group hidden">
-            <label>
-                Число каналов v
-                <input type="text" id="v-a-input" value="20" placeholder="20">
-            </label>
-            <label>
-                Допустимая вероятность блокировки E
-                <input type="text" id="e-a-input" value="0.02" placeholder="0.02">
-            </label>
-        </div>
+        <div id="input-panel"></div>
 
         <button id="calculate-btn">Рассчитать</button>
 
@@ -238,7 +193,7 @@
             <div id="result-content"></div>
         </div>
 
-        <!-- Теоретический блок -->
+        <!-- ================= ТЕОРЕТИЧЕСКИЙ БЛОК ================= -->
         <section class="description">
             <h2>Моносервисная модель Эрланга с потерями (Erlang B)</h2>
 
@@ -328,12 +283,16 @@
             </ul>
 
             <h3>Прямые и обратные задачи</h3>
-            <p>Калькулятор решает три типа задач:</p>
+            <p>Калькулятор решает шесть типов задач, возникающих при планировании сетей связи:</p>
             <ul>
-                <li>Прямая задача: по v и a определить E и m.</li>
-                <li>Обратная задача 1: по a и допустимой E найти минимальное v.</li>
-                <li>Обратная задача 2: по v и допустимой E найти максимальную нагрузку a.</li>
+                <li>По v и a определить E и m.</li>
+                <li>По a и допустимой E найти минимальное v и вычислить m.</li>
+                <li>По a и требуемому m найти минимальное v и соответствующую E.</li>
+                <li>По v и требуемому m найти нагрузку a и соответствующую E.</li>
+                <li>По v и допустимой E найти максимальную нагрузку a и вычислить m.</li>
+                <li>По допустимой E и требуемому m найти нагрузку a и минимальное v.</li>
             </ul>
+            <p>Все вычисления выполняются численно устойчивыми методами (рекурсия, бисекция).</p>
 
             <h3>Литература</h3>
             <ul class="ref-list">
@@ -345,6 +304,58 @@
     </main>
 
     <script>
+        // ---------- Шаблоны полей ввода для каждого режима ----------
+        const templates = {
+            av_to_Em: `
+                <div class="input-group">
+                    <label>Нагрузка a (Эрл) <input type="text" id="a" value="7.5"></label>
+                    <label>Число каналов v <input type="text" id="v" value="10"></label>
+                </div>
+            `,
+            aE_to_vm: `
+                <div class="input-group">
+                    <label>Нагрузка a (Эрл) <input type="text" id="a" value="25.0"></label>
+                    <label>Допустимая вероятность блокировки E <input type="text" id="target_e" value="0.01"></label>
+                </div>
+            `,
+            am_to_vE: `
+                <div class="input-group">
+                    <label>Нагрузка a (Эрл) <input type="text" id="a" value="30.0"></label>
+                    <label>Среднее число занятых каналов m <input type="text" id="target_m" value="20.0"></label>
+                </div>
+            `,
+            vm_to_aE: `
+                <div class="input-group">
+                    <label>Число каналов v <input type="text" id="v" value="30"></label>
+                    <label>Среднее число занятых каналов m <input type="text" id="target_m" value="25.0"></label>
+                </div>
+            `,
+            vE_to_am: `
+                <div class="input-group">
+                    <label>Число каналов v <input type="text" id="v" value="20"></label>
+                    <label>Допустимая вероятность блокировки E <input type="text" id="target_e" value="0.02"></label>
+                </div>
+            `,
+            Em_to_av: `
+                <div class="input-group">
+                    <label>Допустимая вероятность блокировки E <input type="text" id="target_e" value="0.05"></label>
+                    <label>Среднее число занятых каналов m <input type="text" id="target_m" value="9.5"></label>
+                </div>
+            `
+        };
+
+        const modeRadios = document.querySelectorAll('input[name="mode"]');
+        const panel = document.getElementById('input-panel');
+
+        function renderInputs() {
+            const mode = document.querySelector('input[name="mode"]:checked').value;
+            panel.innerHTML = templates[mode] || '';
+        }
+
+        modeRadios.forEach(radio => radio.addEventListener('change', renderInputs));
+        renderInputs();  // начальная отрисовка
+
+        // ---------- Вспомогательная функция парсинга ----------
         function parseNumber(str, isInteger = false) {
             str = str.trim();
             if (str === '') throw new Error('Поле не должно быть пустым');
@@ -356,24 +367,7 @@
             return num;
         }
 
-        const modeRadios = document.querySelectorAll('input[name="mode"]');
-        const inputsCalcE = document.getElementById('inputs-calc_e');
-        const inputsFindV = document.getElementById('inputs-find_v');
-        const inputsFindA = document.getElementById('inputs-find_a');
-
-        function updateInputsVisibility() {
-            const mode = document.querySelector('input[name="mode"]:checked').value;
-            inputsCalcE.classList.add('hidden');
-            inputsFindV.classList.add('hidden');
-            inputsFindA.classList.add('hidden');
-            if (mode === 'calc_e') inputsCalcE.classList.remove('hidden');
-            else if (mode === 'find_v') inputsFindV.classList.remove('hidden');
-            else if (mode === 'find_a') inputsFindA.classList.remove('hidden');
-        }
-
-        modeRadios.forEach(radio => radio.addEventListener('change', updateInputsVisibility));
-        updateInputsVisibility();
-
+        // ---------- Обработчик расчёта ----------
         document.getElementById('calculate-btn').addEventListener('click', async () => {
             const mode = document.querySelector('input[name="mode"]:checked').value;
             const resultContainer = document.getElementById('result-container');
@@ -382,16 +376,16 @@
             let payload = { mode };
 
             try {
-                if (mode === 'calc_e') {
-                    const vInput = document.getElementById('v-input');
-                    const aInput = document.getElementById('a-input');
+                if (mode === 'av_to_Em') {
+                    const aInput = document.getElementById('a');
+                    const vInput = document.getElementById('v');
+                    payload.a = parseNumber(aInput.value, false);
+                    aInput.value = payload.a;   // автоформат
                     payload.v = parseNumber(vInput.value, true);
                     vInput.value = payload.v;
-                    payload.a = parseNumber(aInput.value, false);
-                    aInput.value = payload.a;
-                } else if (mode === 'find_v') {
-                    const aInput = document.getElementById('a-v-input');
-                    const eInput = document.getElementById('e-v-input');
+                } else if (mode === 'aE_to_vm') {
+                    const aInput = document.getElementById('a');
+                    const eInput = document.getElementById('target_e');
                     payload.a = parseNumber(aInput.value, false);
                     aInput.value = payload.a;
                     payload.target_e = parseNumber(eInput.value, false);
@@ -399,13 +393,37 @@
                     if (payload.target_e <= 0 || payload.target_e >= 1) {
                         throw new Error('Вероятность блокировки должна быть строго между 0 и 1');
                     }
-                } else if (mode === 'find_a') {
-                    const vInput = document.getElementById('v-a-input');
-                    const eInput = document.getElementById('e-a-input');
+                } else if (mode === 'am_to_vE') {
+                    const aInput = document.getElementById('a');
+                    const mInput = document.getElementById('target_m');
+                    payload.a = parseNumber(aInput.value, false);
+                    aInput.value = payload.a;
+                    payload.target_m = parseNumber(mInput.value, false);
+                    mInput.value = payload.target_m;
+                } else if (mode === 'vm_to_aE') {
+                    const vInput = document.getElementById('v');
+                    const mInput = document.getElementById('target_m');
+                    payload.v = parseNumber(vInput.value, true);
+                    vInput.value = payload.v;
+                    payload.target_m = parseNumber(mInput.value, false);
+                    mInput.value = payload.target_m;
+                } else if (mode === 'vE_to_am') {
+                    const vInput = document.getElementById('v');
+                    const eInput = document.getElementById('target_e');
                     payload.v = parseNumber(vInput.value, true);
                     vInput.value = payload.v;
                     payload.target_e = parseNumber(eInput.value, false);
                     eInput.value = payload.target_e;
+                    if (payload.target_e <= 0 || payload.target_e >= 1) {
+                        throw new Error('Вероятность блокировки должна быть строго между 0 и 1');
+                    }
+                } else if (mode === 'Em_to_av') {
+                    const eInput = document.getElementById('target_e');
+                    const mInput = document.getElementById('target_m');
+                    payload.target_e = parseNumber(eInput.value, false);
+                    eInput.value = payload.target_e;
+                    payload.target_m = parseNumber(mInput.value, false);
+                    mInput.value = payload.target_m;
                     if (payload.target_e <= 0 || payload.target_e >= 1) {
                         throw new Error('Вероятность блокировки должна быть строго между 0 и 1');
                     }
