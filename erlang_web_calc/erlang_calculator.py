@@ -1,20 +1,9 @@
-#!/usr/bin/env python3
-# -*- coding: utf-8 -*-
 
-"""
-Калькулятор характеристик пропускной способности моносервисных узлов доступа
-Модель Эрланга (Erlang B) с потерями.
-
-Версия: 3.0 (финальная, учебная)
-"""
-
-import math
 import sys
 from datetime import datetime
 
 
 class ErlangBCalculator:
-    """Класс для расчётов по модели Эрланга B."""
 
     @staticmethod
     def erlang_b(v: int, a: float) -> float:
